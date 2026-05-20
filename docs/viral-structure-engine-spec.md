@@ -4,109 +4,148 @@
 
 项目目标：输入爆款样例视频，拆解其叙事结构、镜头节奏、字幕文案、情绪曲线和转化逻辑；再输入新的主题、产品信息或素材库，生成同结构但原创的新脚本、分镜、素材匹配方案和可编辑视频时间线。
 
-## 1. 最终推荐技术栈
+## 1. 项目架构与技术栈定稿
 
-本项目按个人开发优先考虑：开发效率高、部署简单、后续可扩展，但不在 MVP 阶段引入过重的微服务复杂度。
+本项目从“爆款结构迁移引擎”重新定位为一个可本地部署的 AI 视频创作系统。核心不是复制样例内容，而是把样例视频中有效的脚本结构、镜头节奏、音乐卡点、字幕文案、剪辑手法和转化逻辑拆成可复用的“结构协议”，再基于新主题、新素材和可配置参数自动拼装出原创视频。
 
-最终推荐：
+交付目标应同时覆盖三件事：
+
+- 可运行的代码系统：支持上传样例、解析结构、输入新主题并生成新视频方案或成片。
+- 优质视频 showcase：最终效果要能体现结构迁移、素材补全和重组能力。
+- 知识库沉淀：把有效剪辑技巧、结构模板、原子模块和自定义协议沉淀下来，后续可复用。
+
+### 1.1 最终推荐技术栈
+
+项目优先面向个人/小团队开发，选择“前端工作台 + NestJS 编排 API + 本地/异步视频处理 + Remotion/FFmpeg 渲染”的轻量 monorepo 架构，不在 MVP 阶段拆成复杂微服务。
 
 ```text
-轻量 monorepo
+pnpm workspace monorepo
 + Vite + React + TypeScript
++ Tailwind CSS
++ React Router + TanStack Query + Zustand
 + NestJS + Prisma
 + PostgreSQL
 + Redis + BullMQ
-+ Cloudflare R2
-+ FFmpeg
++ Cloudflare R2 / S3-compatible storage
++ FFmpeg / ffprobe
++ Remotion
 + OpenAI / Claude / Gemini API
++ 可选：ComfyUI / Hyperframes / 本地素材生成能力
 ```
 
-### 1.1 架构选择
+### 1.2 架构定位
 
 - 采用轻量 monorepo，不采用单应用目录。
-- 前端和后端独立运行：`apps/web` 与 `apps/api`。
-- 共享类型、枚举、Zod Schema 放在 `packages/shared`。
-- AI Prompt 模板放在 `packages/prompts`。
-- 视频分析和渲染 Worker 前期先放在 NestJS 任务模块里，等任务变重后再拆到 `workers/`。
+- 前端和后端独立运行：`apps/web` 是 H5/桌面工作台，`apps/api` 是任务编排和业务 API。
+- 共享类型、枚举、Zod Schema、自定义结构协议放在 `packages/shared`。
+- AI Prompt 模板和结构迁移提示词放在 `packages/prompts`。
+- 视频分析、素材补全和渲染任务在 MVP 阶段先放在 NestJS `jobs` 模块，通过 BullMQ 异步处理。
+- Remotion 负责可程序化生成视频片段、字幕动画、MG 动画和动态海报类画面；FFmpeg 负责抽音频、抽帧、转码、拼接和最终封装。
+- 只有当 FFmpeg/渲染/视觉分析明显拖慢 API 或需要 Python/GPU 生态时，再把能力拆到 `workers/`。
 - 不在 MVP 阶段拆 user-service、video-service、ai-service 等微服务。
 
-### 1.2 前端
+### 1.3 核心系统链路
 
-- Web 框架：Vite + React
-- 语言：TypeScript
-- 样式：Tailwind CSS
-- 服务端数据状态：TanStack Query
-- 本地编辑器状态：Zustand
-- 路由：React Router
-- 视频预览：HTMLVideoElement + WebCodecs，后续可接 Remotion
-- 音频波形：WaveSurfer.js
-- 时间线拖拽：dnd-kit 或自研 timeline interaction
-
-选择原因：
-
-- Vite React 更轻，适合后台工具型产品。
-- React Router 足够覆盖项目页、拆解页、分镜页、素材页、时间线页。
-- TanStack Query 适合轮询任务状态和管理服务端缓存。
-- Zustand 适合管理脚本编辑器、分镜编辑器、时间线编辑器等复杂本地状态。
-
-### 1.3 后端
-
-- API 服务：NestJS
-- ORM：Prisma
-- 数据库：PostgreSQL
-- 异步任务：Redis + BullMQ
-- 文件存储：Cloudflare R2，兼容 S3 API
-- 视频处理：FFmpeg + OpenCV + PySceneDetect
-- 向量检索：MVP 后可增加 pgvector
-
-选择原因：
-
-- NestJS 模块化清楚，适合后续增长为多个业务模块。
-- Prisma 对个人开发效率高，迁移、类型和查询体验都比较顺。
-- BullMQ 可以承接视频分析、AI 生成、素材索引、渲染导出等异步任务。
-- Cloudflare R2 成本低，适合存储视频原片、抽帧、素材、导出成片。
-
-### 1.4 AI 与视频能力
-
-- ASR：OpenAI Whisper API 或本地 whisper.cpp
-- OCR：MVP 阶段可先不做；需要时接 PaddleOCR
-- 镜头切分：FFmpeg scene detection 或 PySceneDetect
-- 画面理解：多模态大模型，MVP 阶段可先抽关键帧交给模型描述
-- 结构识别：LLM
-- 结构迁移：LLM
-- 素材匹配：MVP 2 再接 CLIP / 多模态 embedding
-- TTS：MVP 3 再接 OpenAI / 火山 / Azure / 阿里云
-
-MVP 阶段优先跑通：
+MVP 应优先跑通以下自动化闭环，人工只负责上传样例、输入主题/参数和挑选结果：
 
 ```text
 上传样例视频
--> FFmpeg 抽音频
--> ASR 转文字
--> FFmpeg/PySceneDetect 镜头切分
--> LLM 拆爆款结构
--> 用户输入新主题
--> LLM 生成新脚本和分镜
+-> FFmpeg 抽音频、抽帧、基础元信息
+-> ASR 转字幕
+-> 镜头切分、音乐卡点、节奏点识别
+-> LLM 抽取结构协议：脚本段落、镜头节奏、字幕样式、转场/卡点/CTA
+-> 用户输入新主题、产品信息、目标平台、素材约束
+-> LLM 生成新脚本、分镜和素材需求
+-> Remotion/素材库/可选 ComfyUI 或 Hyperframes 生成或补齐画面片段
+-> FFmpeg/Remotion 拼装新视频
+-> 输出成片、时间线数据、结构模板和可复用剪辑知识
 ```
 
-### 1.5 部署建议
+### 1.4 前端工作台
 
-个人开发优先选择托管服务：
+- Web 框架：Vite + React。
+- 语言：TypeScript。
+- 样式：Tailwind CSS。
+- 路由：React Router。
+- 服务端数据状态：TanStack Query，适合轮询分析、生成、渲染任务状态。
+- 本地编辑器状态：Zustand，管理脚本编辑器、分镜编辑器、时间线编辑器和参数面板。
+- 视频预览：HTMLVideoElement；需要更细编辑体验时接 WebCodecs。
+- 音频波形和卡点展示：WaveSurfer.js。
+- 时间线交互：dnd-kit 或自研 timeline interaction。
+- 工作流页面应围绕“样例解析 -> 结构协议 -> 新主题生成 -> 素材补全 -> 视频重组 -> showcase 导出”组织，而不是普通素材管理后台。
 
-- 前端：Vercel / Cloudflare Pages
-- 后端：Railway / Render / Fly.io
-- 数据库：Supabase Postgres / Neon
-- Redis：Upstash Redis
-- 文件存储：Cloudflare R2
+选择原因：
+
+- Vite React 更轻，适合 H5 工作台和本地可部署演示。
+- React Router 足够覆盖项目页、样例拆解页、结构协议页、分镜页、素材页、时间线页和 showcase 页。
+- TanStack Query 适合处理异步任务轮询和服务端缓存。
+- Zustand 适合管理编辑器型复杂本地状态。
+
+### 1.5 后端编排层
+
+- API 服务：NestJS。
+- ORM：Prisma。
+- 数据库：PostgreSQL。
+- 异步任务：Redis + BullMQ。
+- 文件存储：Cloudflare R2 或其他 S3-compatible storage；本地开发可先用本地磁盘适配器。
+- 视频处理：FFmpeg / ffprobe，后续按需加入 OpenCV、PySceneDetect、PaddleOCR。
+- 渲染生成：Remotion 渲染片段或完整视频，FFmpeg 做拼接、混音、转码和封装。
+- 向量检索：MVP 后可增加 pgvector，用于素材理解、素材匹配和剪辑知识检索。
+
+选择原因：
+
+- NestJS 模块化清楚，适合承载项目、视频、分析、结构、生成、素材、时间线、渲染等业务模块。
+- Prisma 对个人开发效率高，迁移、类型和查询体验顺。
+- BullMQ 可以承接视频分析、AI 生成、素材索引、Remotion 渲染、FFmpeg 导出等长任务。
+- R2/S3 适合存储样例视频、抽帧、素材、Remotion 中间产物和导出成片。
+
+### 1.6 AI、视频与素材能力
+
+- ASR：OpenAI Whisper API 或本地 whisper.cpp。
+- OCR：MVP 可先不做；需要识别硬字幕和画面文字时接 PaddleOCR。
+- 镜头切分：FFmpeg scene detection，后续可接 PySceneDetect。
+- 音乐卡点：先用 FFmpeg 音频能量/静音/节拍启发式分析，后续再接专业 beat tracking。
+- 画面理解：MVP 先抽关键帧交给多模态模型描述。
+- 结构识别：LLM 把脚本、镜头、卡点、字幕、转场和 CTA 抽象为结构协议。
+- 结构迁移：LLM 基于结构协议和新主题生成原创脚本、分镜和素材需求。
+- 素材补全：优先 Remotion 生成 MG 动画、动态海报、字幕动效和图文片段；可选 Hyperframes、ComfyUI 或外部生图/视频工具补充视觉素材。
+- 素材匹配：MVP 2 再接 CLIP / 多模态 embedding / pgvector。
+- TTS：MVP 3 再接 OpenAI、火山、Azure 或阿里云。
+
+### 1.7 自定义结构协议
+
+系统需要沉淀一个内部结构协议，用于连接“样例解析”和“新视频生成”。协议至少描述：
+
+- `scriptBeats`：hook、problem、conflict、solution、proof、comparison、cta 等脚本段落。
+- `shotRhythm`：镜头长度、切点、景别、运动、转场和重复节奏。
+- `captionPattern`：字幕位置、字数节奏、强调词、封面标题、CTA 文案。
+- `musicCues`：卡点时间、强弱节奏、音效点和画面同步策略。
+- `visualAtoms`：可复用画面原子，如商品展示、人物口播、对比图、MG 图形、动态海报。
+- `editAtoms`：可复用剪辑手法，如快切、推拉、闪白、缩放、分屏、蒙版、字幕弹出。
+- `generationConstraints`：平台、时长、比例、品牌语气、素材限制和原创度约束。
+
+该协议应优先作为 `packages/shared` 中的类型/Zod Schema 设计来源，并作为 prompt 输出格式、数据库 JSON 字段和前端编辑器状态的共同契约。
+
+### 1.8 部署建议
+
+个人开发优先选择本地可运行 + 托管服务组合：
+
+- 本地开发/演示：web、api、PostgreSQL、Redis、FFmpeg、Remotion 在本机或 Docker Compose 中运行。
+- 前端部署：Vercel / Cloudflare Pages。
+- 后端部署：Railway / Render / Fly.io。
+- 数据库：Supabase Postgres / Neon。
+- Redis：Upstash Redis。
+- 文件存储：Cloudflare R2。
 
 最省心组合：
 
 ```text
 Vercel 部署 web
-+ Railway 部署 api
++ Railway 部署 api 和队列 worker
 + Supabase Postgres
 + Upstash Redis
 + Cloudflare R2
++ 本地或 worker 环境安装 FFmpeg/Remotion 渲染依赖
 ```
 
 ## 2. 推荐项目目录
