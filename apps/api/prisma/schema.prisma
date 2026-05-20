@@ -1,0 +1,371 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  plan      String   @default("free")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects Project[]
+  videos   Video[]
+  assets   Asset[]
+}
+
+model Project {
+  id             String   @id @default(uuid())
+  userId         String?
+  name           String
+  description    String?
+  targetPlatform String
+  targetAudience String?
+  brandVoice     String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user             User?             @relation(fields: [userId], references: [id])
+  videos           Video[]
+  analyses         VideoAnalysis[]
+  viralStructures  ViralStructure[]
+  generationInputs GenerationInput[]
+  generatedScripts GeneratedScript[]
+  storyboards      Storyboard[]
+  assets           Asset[]
+  timelines        Timeline[]
+  renderJobs       RenderJob[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Video {
+  id               String   @id @default(uuid())
+  projectId        String
+  userId           String?
+  role             String
+  originalFilename String?
+  storageKey       String
+  publicUrl        String?
+  mimeType         String
+  fileSize         BigInt
+  duration         Float?
+  width            Int?
+  height           Int?
+  fps              Float?
+  bitrate          Int?
+  status           String   @default("uploaded")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id])
+
+  analyses        VideoAnalysis[]
+  sourceStructures ViralStructure[]
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([role])
+}
+
+model VideoAnalysis {
+  id              String   @id @default(uuid())
+  videoId         String
+  projectId       String
+  transcript      Json?
+  ocrTexts        Json?
+  shots           Json?
+  scenes          Json?
+  keyframes       Json?
+  audioAnalysis   Json?
+  visualSummary   Json?
+  analysisVersion String   @default("v0")
+  status          String   @default("pending")
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  video   Video   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  viralStructures ViralStructure[]
+
+  @@index([videoId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model ViralStructure {
+  id                String   @id @default(uuid())
+  projectId         String
+  sourceVideoId     String
+  analysisId        String
+  name              String
+  platform          String
+  genre             String
+  duration          Float
+  aspectRatio       String
+  hookType          String?
+  rhythmPattern     String?
+  emotionCurve      Json
+  beats             Json
+  copyPatterns      Json?
+  visualPatterns    Json?
+  editingPatterns   Json?
+  originalityPolicy Json?
+  confidenceScore   Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceVideo Video         @relation(fields: [sourceVideoId], references: [id])
+  analysis    VideoAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  templates        StructureTemplate[]
+  generationInputs GenerationInput[]
+  generatedScripts GeneratedScript[]
+
+  @@index([projectId])
+  @@index([sourceVideoId])
+  @@index([analysisId])
+}
+
+model StructureTemplate {
+  id                  String   @id @default(uuid())
+  ownerUserId          String?
+  sourceStructureId    String?
+  name                String
+  description         String?
+  category            String
+  targetPlatforms     Json
+  suitableIndustries  Json?
+  recommendedDuration Float?
+  structure           Json
+  isPublic            Boolean  @default(false)
+  usageCount          Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  sourceStructure ViralStructure? @relation(fields: [sourceStructureId], references: [id])
+
+  @@index([ownerUserId])
+  @@index([sourceStructureId])
+  @@index([category])
+}
+
+model GenerationInput {
+  id                 String   @id @default(uuid())
+  projectId          String
+  structureId        String
+  topic              String
+  productName        String?
+  productDescription String?
+  sellingPoints      Json?
+  targetAudience     String?
+  painPoints         Json?
+  brandVoice         String?
+  targetPlatform     String
+  durationPreference Float?
+  constraints        Json?
+  createdAt          DateTime @default(now())
+
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  structure ViralStructure @relation(fields: [structureId], references: [id])
+  scripts   GeneratedScript[]
+
+  @@index([projectId])
+  @@index([structureId])
+}
+
+model GeneratedScript {
+  id                 String   @id @default(uuid())
+  projectId          String
+  generationInputId  String
+  structureId        String
+  variantIndex       Int
+  title              String
+  coverText          String?
+  summary            String?
+  fullScript         String
+  scenes             Json
+  subtitles          Json?
+  cta                String?
+  estimatedDuration  Float?
+  similarityScore    Float?
+  originalityScore   Float?
+  qualityScore       Float?
+  status             String   @default("draft")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  generationInput GenerationInput @relation(fields: [generationInputId], references: [id], onDelete: Cascade)
+  structure       ViralStructure  @relation(fields: [structureId], references: [id])
+
+  storyboards Storyboard[]
+  timelines   Timeline[]
+
+  @@index([projectId])
+  @@index([generationInputId])
+  @@index([structureId])
+  @@index([status])
+}
+
+model Storyboard {
+  id          String   @id @default(uuid())
+  projectId   String
+  scriptId    String
+  title       String
+  aspectRatio String
+  scenes      Json
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  script  GeneratedScript @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+
+  assetMatches AssetMatch[]
+  timelines    Timeline[]
+
+  @@index([projectId])
+  @@index([scriptId])
+  @@index([status])
+}
+
+model Asset {
+  id               String   @id @default(uuid())
+  projectId        String
+  userId           String?
+  type             String
+  originalFilename String?
+  storageKey       String
+  publicUrl        String?
+  mimeType         String
+  fileSize         BigInt
+  duration         Float?
+  width            Int?
+  height           Int?
+  tags             Json?
+  description      String?
+  dominantColors   Json?
+  transcript       Json?
+  embeddingId      String?
+  qualityScore     Float?
+  status           String   @default("uploaded")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id])
+
+  embeddings AssetEmbedding[]
+  matches    AssetMatch[]
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+}
+
+model AssetEmbedding {
+  id        String   @id @default(uuid())
+  assetId   String
+  projectId String
+  modality  String
+  frameTime Float?
+  embedding Json
+  model     String
+  createdAt DateTime @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([projectId])
+  @@index([modality])
+}
+
+model AssetMatch {
+  id              String   @id @default(uuid())
+  projectId       String
+  storyboardId    String
+  sceneId         String
+  assetId         String
+  matchReason     String?
+  confidenceScore Float
+  rank            Int
+  createdAt       DateTime @default(now())
+
+  storyboard Storyboard @relation(fields: [storyboardId], references: [id], onDelete: Cascade)
+  asset      Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([storyboardId])
+  @@index([sceneId])
+  @@index([assetId])
+}
+
+model Timeline {
+  id          String   @id @default(uuid())
+  projectId   String
+  storyboardId String?
+  scriptId    String?
+  name        String
+  duration    Float
+  aspectRatio String
+  fps         Float
+  width       Int
+  height      Int
+  tracks      Json
+  settings    Json?
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  storyboard Storyboard?      @relation(fields: [storyboardId], references: [id])
+  script     GeneratedScript? @relation(fields: [scriptId], references: [id])
+
+  renderJobs RenderJob[]
+
+  @@index([projectId])
+  @@index([storyboardId])
+  @@index([scriptId])
+  @@index([status])
+}
+
+model RenderJob {
+  id               String    @id @default(uuid())
+  projectId        String
+  timelineId       String
+  userId           String?
+  status           String    @default("pending")
+  progress         Int       @default(0)
+  outputStorageKey String?
+  outputUrl        String?
+  outputDuration   Float?
+  outputFileSize   BigInt?
+  errorMessage     String?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([timelineId])
+  @@index([userId])
+  @@index([status])
+}

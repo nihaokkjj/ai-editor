@@ -2,25 +2,26 @@
   "name": "ai-editor",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "workers/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.2.6",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "dev": "pnpm -r --parallel dev",
+    "dev:web": "pnpm --filter @ai-editor/web dev",
+    "dev:api": "pnpm --filter @ai-editor/api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @ai-editor/api prisma:generate",
+    "db:migrate": "pnpm --filter @ai-editor/api prisma:migrate"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.6",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@types/node": "^20.17.10",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
   }
 }

@@ -1,0 +1,10 @@
+{
+  "name": "@ai-editor/prompts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "echo prompts ready",
+    "lint": "echo prompts lint skipped",
+    "typecheck": "echo prompts typecheck skipped"
+  }
+}
