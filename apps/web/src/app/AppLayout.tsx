@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 
 const navigation = [
   { to: "/", label: "工作台" },
+  { to: "/analysis", label: "视频拆解" },
   { to: "/projects", label: "项目" },
 ];
 

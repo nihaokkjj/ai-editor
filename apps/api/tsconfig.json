@@ -15,11 +15,7 @@
     "baseUrl": "./",
     "incremental": true,
     "noEmit": false,
-    "strictPropertyInitialization": false,
-    "paths": {
-      "@ai-editor/shared": ["../../packages/shared/src/index.ts"],
-      "@ai-editor/shared/*": ["../../packages/shared/src/*"]
-    }
+    "strictPropertyInitialization": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

@@ -16,8 +16,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@ai-editor/shared": ["packages/shared/src/index.ts"],
-      "@ai-editor/shared/*": ["packages/shared/src/*"]
+      "@ai-editor/shared": ["packages/shared/dist/index.d.ts"],
+      "@ai-editor/shared/*": ["packages/shared/dist/*"]
     }
   }
 }

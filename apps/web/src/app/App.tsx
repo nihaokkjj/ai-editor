@@ -8,6 +8,7 @@ export function App() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route index element={<WorkspacePage />} />
+          <Route path="analysis" element={<WorkspacePage />} />
           <Route path="projects" element={<WorkspacePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

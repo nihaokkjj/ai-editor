@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git restore *)",
+      "Bash(pnpm *)",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem -Recurse -File D:\\\\front\\\\fire\\\\ai-editor\\\\apps\\\\api\\\\dist | Select-Object -First 20 FullName\")",
+      "Bash(node *)"
+    ]
+  }
+}
