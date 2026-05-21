@@ -4,7 +4,11 @@
       "Bash(git restore *)",
       "Bash(pnpm *)",
       "Bash(powershell -NoProfile -Command \"Get-ChildItem -Recurse -File D:\\\\front\\\\fire\\\\ai-editor\\\\apps\\\\api\\\\dist | Select-Object -First 20 FullName\")",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(powershell *)",
+      "Bash(docker exec my-postgres *)",
+      "Bash(DATABASE_URL=\"postgresql://admin:123456@localhost:5432/ai_editor\" pnpm *)",
+      "Bash(DATABASE_URL=\"postgresql://admin:123456@127.0.0.1:5432/ai_editor\" pnpm *)"
     ]
   }
 }
